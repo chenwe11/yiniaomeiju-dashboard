@@ -857,14 +857,14 @@ function renderBiz() {
   let kpiHTML = '';
   if (tab === 'all') {
     kpiHTML = `
-      <div class="kpi"><div class="v or">${totalSj.toLocaleString()}</div><div class="l">总商机</div></div>
-      <div class="kpi"><div class="v pu">${totalYx.toLocaleString()}</div><div class="l">总有效商机</div></div>
-      <div class="kpi"><div class="v cy">${totalCj.toLocaleString()}</div><div class="l">总成交</div></div>
-      <div class="kpi"><div class="v ye">¥${(totalYj/10000).toFixed(1)}万</div><div class="l">总业绩</div></div>
-      <div class="kpi"><div class="v rd">${totalSj>0 ? (totalCj/totalSj*100).toFixed(1) : '0'}%</div><div class="l">商机→成交率</div></div>
       <div class="kpi"><div class="v cy">${phoneCalls.toLocaleString()}</div><div class="l">400进线量</div></div>
       <div class="kpi"><div class="v pu">${webUV.toLocaleString()}</div><div class="l">官网UV</div></div>
-      <div class="kpi"><div class="v">${miniUsers > 0 ? miniUsers.toLocaleString() : '-'}</div><div class="l">小程序登录用户</div></div>`;
+      <div class="kpi"><div class="v">${miniUsers > 0 ? miniUsers.toLocaleString() : '-'}</div><div class="l">小程序登录用户</div></div>
+      <div class="kpi"><div class="v or">${totalSj.toLocaleString()}</div><div class="l">商机量</div></div>
+      <div class="kpi"><div class="v pu">${totalYx.toLocaleString()}</div><div class="l">有效商机量</div></div>
+      <div class="kpi"><div class="v cy">${totalCj.toLocaleString()}</div><div class="l">成交量</div></div>
+      <div class="kpi"><div class="v ye">¥${(totalYj/10000).toFixed(1)}万</div><div class="l">成交金额</div></div>
+      <div class="kpi"><div class="v rd">${totalSj>0 ? (totalCj/totalSj*100).toFixed(1) : '0'}%</div><div class="l">商机→成交率</div></div>`;
   } else if (tab === 'phone') {
     let d = agg['400电话'];
     kpiHTML = `
