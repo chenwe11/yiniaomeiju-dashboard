@@ -212,11 +212,7 @@ canvas{max-height:300px}
     <div class="tbl-wrap"><table id="biz_month_tbl"></table></div>
   </div>
   
-  <!-- 城市明细表 -->
-  <div class="box">
-    <h3>城市转化明细（按链路）</h3>
-    <div class="tbl-wrap"><table id="biz_city_tbl"></table></div>
-  </div>
+
 </div>
 
 <!-- TAB 6: 问题诊断 -->
@@ -483,6 +479,23 @@ function renderOverview() {
   let totalStd = cCount * CITY_STD;
   let avgCovRate = totalStd > 0 ? (cov / totalStd * 100).toFixed(1) + '%' : '-';
 
+  // Aggregate traffic & conversion data
+  let phoneCalls = Object.values(D.daily_month).reduce((s,d) => s + (d['咨询']||0), 0);
+  let webUV = Object.values(D.daily_month).reduce((s,d) => s + (d['官网UV']||0), 0);
+  let miniUsers = 0;
+  // Aggregate sj/yx/cj across all biz_channel
+  let totalSj=0, totalYx=0, totalCj2=0;
+  for (let m in D.biz_channel) {
+    let bc = D.biz_channel[m];
+    ['400电话','官网','小程序'].forEach(ch => {
+      if (bc[ch]) {
+        totalSj += bc[ch]['商机']||0;
+        totalYx += bc[ch]['有效商机']||0;
+        totalCj2 += bc[ch]['成交']||0;
+      }
+    });
+  }
+
   document.getElementById('o_kpi').innerHTML = `
     <div class="kpi"><div class="v">${cc.toLocaleString()}</div><div class="l">内容投喂</div></div>
     <div class="kpi"><div class="v gr">${avgCovRate}</div><div class="l">关键词覆盖率</div></div>
@@ -490,8 +503,13 @@ function renderOverview() {
     <div class="kpi"><div class="v rd">${top1Rate}</div><div class="l">TOP1占比</div></div>
     <div class="kpi"><div class="v pk">${top3Rate}</div><div class="l">TOP3占比</div></div>
     <div class="kpi"><div class="v">${(cd + cs).toLocaleString()}</div><div class="l">AI收录总量</div></div>
-    <div class="kpi"><div class="v pu">${fd.uv.toLocaleString()}</div><div class="l">官网UV</div></div>
-    <div class="kpi"><div class="v ye">${yj >= 10000 ? '¥' + (yj / 10000).toFixed(1) + '万' : yj.toFixed(0)}</div><div class="l">总业绩</div></div>`;
+    <div class="kpi"><div class="v cy">${phoneCalls.toLocaleString()}</div><div class="l">400进线量</div></div>
+    <div class="kpi"><div class="v pu">${webUV.toLocaleString()}</div><div class="l">官网UV</div></div>
+    <div class="kpi"><div class="v">${miniUsers > 0 ? miniUsers.toLocaleString() : '-'}</div><div class="l">小程序登录用户</div></div>
+    <div class="kpi"><div class="v or">${totalSj.toLocaleString()}</div><div class="l">商机量</div></div>
+    <div class="kpi"><div class="v pu">${totalYx.toLocaleString()}</div><div class="l">有效商机量</div></div>
+    <div class="kpi"><div class="v cy">${totalCj2.toLocaleString()}</div><div class="l">成交量</div></div>
+    <div class="kpi"><div class="v ye">${yj >= 10000 ? '¥' + (yj / 10000).toFixed(1) + '万' : yj.toFixed(0)}</div><div class="l">成交金额</div></div>`;
 
   document.getElementById('o_funnel').innerHTML = `
     <div class="fstep" style="background:#1565c0"><span class="fc">${cc.toLocaleString()}</span><span class="ft">内容投喂</span></div>
@@ -500,9 +518,13 @@ function renderOverview() {
     <span class="farr">→</span>
     <div class="fstep" style="background:#e65100"><span class="fc">${listedRate}</span><span class="ft">AI上榜</span></div>
     <span class="farr">→</span>
-    <div class="fstep" style="background:#4a148c"><span class="fc">${fd.uv.toLocaleString()}</span><span class="ft">官网UV</span></div>
+    <div class="fstep" style="background:#4a148c"><span class="fc">${webUV.toLocaleString()}</span><span class="ft">官网UV</span></div>
     <span class="farr">→</span>
-    <div class="fstep" style="background:#b71c1c"><span class="fc">${cj}</span><span class="ft">成交</span></div>
+    <div class="fstep" style="background:#ff8f00"><span class="fc">${totalSj.toLocaleString()}</span><span class="ft">商机</span></div>
+    <span class="farr">→</span>
+    <div class="fstep" style="background:#ab47bc"><span class="fc">${totalYx.toLocaleString()}</span><span class="ft">有效商机</span></div>
+    <span class="farr">→</span>
+    <div class="fstep" style="background:#b71c1c"><span class="fc">${totalCj2}</span><span class="ft">成交</span></div>
     <span class="farr">→</span>
     <div class="fstep" style="background:#1a237e"><span class="fc">¥${(yj / 10000).toFixed(1)}万</span><span class="ft">业绩</span></div>`;
 
@@ -993,13 +1015,13 @@ function renderBiz() {
   // === Monthly detail table ===
   if (document.getElementById('biz_month_tbl')) {
     let h = '<tr><th>月份</th>';
-    if (tab==='all'||tab==='phone') h += '<th colspan="5" style="text-align:center;color:#42a5f5">📞 400电话</th>';
-    if (tab==='all'||tab==='web') h += '<th colspan="5" style="text-align:center;color:#66bb6a">🌐 官网</th>';
-    if (tab==='all'||tab==='mini') h += '<th colspan="5" style="text-align:center;color:#ffa726">📱 小程序</th>';
+    if (tab==='all'||tab==='phone') h += '<th colspan="6" style="text-align:center;color:#42a5f5">📞 400电话</th>';
+    if (tab==='all'||tab==='web') h += '<th colspan="6" style="text-align:center;color:#66bb6a">🌐 官网</th>';
+    if (tab==='all'||tab==='mini') h += '<th colspan="6" style="text-align:center;color:#ffa726">📱 小程序</th>';
     h += '<th colspan="4" style="text-align:center;color:#ef5350">📊 合计</th></tr>';
     // Sub-header
     h += '<tr><th></th>';
-    const subH = ['商机','有效商机','成交','成交额','成交率'];
+    const subH = ['进线/UV','商机','有效商机','成交','成交额','成交率'];
     if (tab==='all'||tab==='phone') subH.forEach(x => h += '<th class="nr">'+x+'</th>');
     if (tab==='all'||tab==='web') subH.forEach(x => h += '<th class="nr">'+x+'</th>');
     if (tab==='all'||tab==='mini') subH.forEach(x => h += '<th class="nr">'+x+'</th>');
@@ -1007,313 +1029,23 @@ function renderBiz() {
 
     mL.forEach(m => {
       let bc = D.biz_channel[m] || {};
+      let dm = D.daily_month[m] || {};
       h += '<tr><td>'+m+'</td>';
       let tSj=0,tYx=0,tCj=0,tYj=0;
       ['400电话','官网','小程序'].forEach(ch => {
         let show = (ch==='400电话'&&(tab==='all'||tab==='phone'))||(ch==='官网'&&(tab==='all'||tab==='web'))||(ch==='小程序'&&(tab==='all'||tab==='mini'));
         if (!show) return;
         let d = bc[ch] || {};
+        // Traffic field per channel
+        let traffic = ch==='400电话' ? (dm['咨询']||0) : ch==='官网' ? (dm['官网UV']||0) : (dm['登录用户']||0);
         let sj=d['商机']||0, yx=d['有效商机']||0, cj=d['成交']||0, yj=d['成交额']||0;
         let rate = sj>0 ? (cj/sj*100).toFixed(1)+'%' : '-';
         tSj+=sj; tYx+=yx; tCj+=cj; tYj+=yj;
-        h += '<td class="nr">'+sj+'</td><td class="nr">'+yx+'</td><td class="nr">'+cj+'</td><td class="nr">'+(yj?'¥'+yj.toLocaleString():'-')+'</td><td class="nr" style="color:#ffa726">'+rate+'</td>';
+        h += '<td class="nr">'+traffic+'</td><td class="nr">'+sj+'</td><td class="nr">'+yx+'</td><td class="nr">'+cj+'</td><td class="nr">'+(yj?'¥'+yj.toLocaleString():'-')+'</td><td class="nr" style="color:#ffa726">'+rate+'</td>';
       });
-      let tRate = tSj>0 ? (tCj/tSj*100).toFixed(1)+'%' : '-';
       h += '<td class="nr" style="font-weight:700">'+tSj+'</td><td class="nr" style="font-weight:700">'+tYx+'</td><td class="nr" style="font-weight:700;color:#66bb6a">'+tCj+'</td><td class="nr" style="font-weight:700;color:#ffee58">'+(tYj?'¥'+tYj.toLocaleString():'-')+'</td></tr>';
     });
     document.getElementById('biz_month_tbl').innerHTML = h;
   }
 
-  // === City detail table ===
-  if (document.getElementById('biz_city_tbl')) {
-    let cities = sC !== 'all' ? [sC] : (D.biz_city_channel ? Object.keys(D.biz_city_channel) : []);
-    let h = '<tr><th>城市</th><th>类型</th>';
-    if (tab==='all'||tab==='phone') h += '<th colspan="4" style="text-align:center;color:#42a5f5">📞 400电话</th>';
-    if (tab==='all'||tab==='web') h += '<th colspan="4" style="text-align:center;color:#66bb6a">🌐 官网</th>';
-    if (tab==='all'||tab==='mini') h += '<th colspan="4" style="text-align:center;color:#ffa726">📱 小程序</th>';
-    h += '<th colspan="3" style="text-align:center;color:#ef5350">📊 合计</th></tr>';
-    // Sub-header
-    h += '<tr><th></th><th></th>';
-    const cSubH = ['商机','有效商机','成交','成交额'];
-    if (tab==='all'||tab==='phone') cSubH.forEach(x => h += '<th class="nr">'+x+'</th>');
-    if (tab==='all'||tab==='web') cSubH.forEach(x => h += '<th class="nr">'+x+'</th>');
-    if (tab==='all'||tab==='mini') cSubH.forEach(x => h += '<th class="nr">'+x+'</th>');
-    h += '<th class="nr">商机</th><th class="nr">成交</th><th class="nr">成交额</th></tr>';
-
-    cities.forEach(c => {
-      if (!D.biz_city_channel || !D.biz_city_channel[c]) return;
-      let type = CT[c] || '监测', tc = type==='自营'?'tg':type==='加盟'?'to':'tm';
-      let tSj=0,tYx=0,tCj=0,tYj=0;
-      h += '<tr><td>'+c+'</td><td><span class="tag '+tc+'">'+type+'</span></td>';
-      ['400电话','官网','小程序'].forEach(ch => {
-        let show = (ch==='400电话'&&(tab==='all'||tab==='phone'))||(ch==='官网'&&(tab==='all'||tab==='web'))||(ch==='小程序'&&(tab==='all'||tab==='mini'));
-        if (!show) return;
-        let sj=0,yx=0,cj=0,yj=0;
-        for (let m in D.biz_city_channel[c]) {
-          if (sM!=='all' && m!==sM) continue;
-          let d = D.biz_city_channel[c][m][ch] || {};
-          sj += d['商机']||0; yx += d['有效商机']||0; cj += d['成交']||0; yj += d['成交额']||0;
-        }
-        tSj+=sj; tYx+=yx; tCj+=cj; tYj+=yj;
-        h += '<td class="nr">'+sj+'</td><td class="nr">'+yx+'</td><td class="nr">'+cj+'</td><td class="nr">'+(yj?'¥'+yj.toLocaleString():'-')+'</td>';
-      });
-      let tRate = tSj>0 ? (tCj/tSj*100).toFixed(1)+'%' : '-';
-      h += '<td class="nr" style="font-weight:700">'+tSj+'</td><td class="nr" style="font-weight:700;color:#66bb6a">'+tCj+'</td><td class="nr" style="font-weight:700;color:#ffee58">'+(tYj?'¥'+tYj.toLocaleString():'-')+'</td></tr>';
-    });
-    document.getElementById('biz_city_tbl').innerHTML = h;
-  }
-}
-
-// ===== TAB 6: 问题诊断 =====
-function renderIssues() {
-  const fd = getFD();
-  let issues = [];
-
-  // Issue 1: Low keyword coverage
-  let lowCovCities = Object.entries(D.city_kw_coverage).filter(([c, v]) => v.rate < 30);
-  if (lowCovCities.length > 0) {
-    issues.push({
-      title: '🔴 关键词覆盖率严重不足',
-      detail: lowCovCities.map(([c, v]) => `${c}(${v.rate}%)`).join('、'),
-      action: '优先补充低覆盖率城市的关键词内容投喂，重点关注佛山、东莞、武汉、重庆、徐州、郑州',
-      severity: 'high'
-    });
-  }
-
-  // Issue 2: Zero ranking cities
-  let zeroRankCities = Object.entries(D.city_kw_coverage).filter(([c, v]) => v.rate === 0);
-  if (zeroRankCities.length > 0) {
-    issues.push({
-      title: ' 部分城市零排名覆盖',
-      detail: zeroRankCities.map(([c]) => c).join('、') + ' 在排名数据中无任何上榜记录',
-      action: '检查这些城市的关键词监测配置，确认是否已纳入监测范围',
-      severity: 'high'
-    });
-  }
-
-  // Issue 3: Media with zero AI citation despite high publish
-  let zeroCiteHighPub = D.comparison_data.filter(c => c.rate === 0 && c.publish >= 50);
-  if (zeroCiteHighPub.length > 0) {
-    issues.push({
-      title: '⚠️ 高投喂零收录媒体',
-      detail: zeroCiteHighPub.map(c => `${c.media}(发布${c.publish}篇,收录0)`).join('、'),
-      action: '评估这些媒体的内容质量和AI友好度，考虑调整内容策略或更换媒体渠道',
-      severity: 'medium'
-    });
-  }
-
-  // Issue 4: City business performance gap
-  let bizCities = Object.entries(D.city_biz);
-  if (bizCities.length > 1) {
-    let revenues = bizCities.map(([c, months]) => {
-      let total = 0; for (let m in months) total += months[m]['成交额'] || 0;
-      return { c, total };
-    }).sort((a, b) => b.total - a.total);
-    if (revenues.length >= 2 && revenues[0].total > 0) {
-      let ratio = revenues[revenues.length - 1].total / revenues[0].total;
-      if (ratio < 0.1) {
-        issues.push({
-          title: '⚠️ 城市业绩差距悬殊',
-          detail: `最高${revenues[0].c}(¥${(revenues[0].total / 10000).toFixed(1)}万) vs 最低${revenues[revenues.length - 1].c}(¥${(revenues[revenues.length - 1].total / 10000).toFixed(1)}万), 差距${(1 / ratio).toFixed(0)}倍`,
-          action: '分析低业绩城市的转化漏斗瓶颈，是商机不足还是成交转化率低',
-          severity: 'medium'
-        });
-      }
-    }
-  }
-
-  // Issue 5: Low citation rate overall
-  let avgRate = D.comparison_data.filter(c => c.publish > 0).reduce((s, c) => s + c.rate, 0) / D.comparison_data.filter(c => c.publish > 0).length;
-  if (avgRate < 10) {
-    issues.push({
-      title: '⚠️ 整体AI收录率偏低',
-      detail: `媒体平均收录率仅${avgRate.toFixed(1)}%，大部分发布内容未被AI平台引用`,
-      action: '优化内容质量和SEO结构，提升内容在AI搜索中的可见度',
-      severity: 'medium'
-    });
-  }
-
-  // Render
-  let h = '';
-  issues.forEach(issue => {
-    let color = issue.severity === 'high' ? '#ef5350' : '#ffa726';
-    h += `<div style="margin-bottom:16px;padding:12px;background:#1a1f4e;border-radius:8px;border-left:4px solid ${color}">
-      <h4 style="color:${color};margin-bottom:8px">${issue.title}</h4>
-      <p style="font-size:13px;color:#ccc;margin-bottom:6px"><strong>现状：</strong>${issue.detail}</p>
-      <p style="font-size:13px;color:#66bb6a"><strong>建议：</strong>${issue.action}</p>
-    </div>`;
-  });
-  if (issues.length === 0) {
-    h = '<p style="color:#66bb6a">✅ 暂无重大问题，各项指标正常</p>';
-  }
-  document.getElementById('issues_content').innerHTML = h;
-}
-
-// Initial render
-renderAll();
-
-// ===== TAB 7: 数据对比 =====
-function fmtNum(v) {
-  if (v === null || v === undefined) return '-';
-  if (typeof v === 'number') return v.toLocaleString('zh-CN');
-  return v;
-}
-function fmtPct(v) {
-  if (v === null || v === undefined) return '-';
-  return v.toFixed(2) + '%';
-}
-function diffArrow(oldV, newV, isPct) {
-  const d = newV - oldV;
-  const pct = oldV > 0 ? (d / oldV * 100) : (newV > 0 ? 100 : 0);
-  let color, arrow;
-  if (d > 0) { color = '#66bb6a'; arrow = '▲'; }
-  else if (d < 0) { color = '#ef5350'; arrow = '▼'; }
-  else { color = '#888'; arrow = '—'; }
-  const val = isPct ? fmtPct(Math.abs(d)) : fmtNum(Math.abs(d));
-  return '<span style="color:' + color + '">' + arrow + ' ' + val + (isPct ? 'pt' : '') + ' (' + (d>=0?'+':'') + pct.toFixed(1) + '%)</span>';
-}
-function renderCompare() {
-  const oldDate = document.getElementById('cmpOld').value;
-  const newDate = document.getElementById('cmpNew').value;
-  const oldD = SNAPSHOTS.find(s => s.date === oldDate);
-  const newD = SNAPSHOTS.find(s => s.date === newDate);
-  const box = document.getElementById('cmp_content');
-  if (!oldD || !newD || oldDate === newDate) {
-    box.innerHTML = '<div class="box"><p style="color:#ffa726;text-align:center;padding:40px">⚠️ 请选择两个不同的快照日期进行对比</p></div>';
-    return;
-  }
-
-  let h = '';
-
-  // KPI 对比卡片
-  const kpis = [
-    { label: '总内容投喂量', old: oldD.total_feed, new: newD.total_feed, color: 'cy', isPct: false },
-    { label: '关键词覆盖率', old: oldD.kw_rate, new: newD.kw_rate, color: 'gr', isPct: true, fmt: fmtPct },
-    { label: 'AI平台引用量', old: oldD.ai_cite_count, new: newD.ai_cite_count, color: 'pu', isPct: false },
-    { label: '总成交额（元）', old: oldD.total_revenue, new: newD.total_revenue, color: 'or', isPct: false },
-  ];
-  h += '<div class="kpi-row">';
-  kpis.forEach(k => {
-    const valOld = k.fmt ? k.fmt(k.old) : fmtNum(k.old);
-    const valNew = k.fmt ? k.fmt(k.new) : fmtNum(k.new);
-    h += '<div class="kpi">'
-       + '<div class="v ' + k.color + '" style="font-size:22px">' + valNew + '</div>'
-       + '<div class="l" style="margin:4px 0">' + k.label + '</div>'
-       + '<div style="font-size:11px;color:#888">旧值: ' + valOld + '</div>'
-       + '<div style="font-size:12px;margin-top:4px">' + diffArrow(k.old, k.new, k.isPct) + '</div>'
-       + '</div>';
-  });
-  h += '</div>';
-
-  // 城市覆盖率对比 + 月度投喂对比
-  h += '<div class="grid2">';
-  // 城市覆盖率
-  const cities = [...new Set([...Object.keys(oldD.city_coverage), ...Object.keys(newD.city_coverage)])].sort();
-  h += '<div class="box"><h3>🏙️ 城市关键词覆盖率对比</h3>'
-     + '<div class="tbl-wrap"><table><tr><th>城市</th><th>旧覆盖率</th><th>新覆盖率</th><th>变化</th></tr>';
-  cities.forEach(c => {
-    const o = oldD.city_coverage[c] || { rate: 0, covered: 0, total: 0 };
-    const n = newD.city_coverage[c] || { rate: 0, covered: 0, total: 0 };
-    const d = n.rate - o.rate;
-    let color = '#888', arrow = '—';
-    if (d > 0) { color = '#66bb6a'; arrow = '▲'; }
-    else if (d < 0) { color = '#ef5350'; arrow = '▼'; }
-    h += '<tr><td>' + c + '</td>'
-       + '<td>' + fmtPct(o.rate) + '</td>'
-       + '<td>' + fmtPct(n.rate) + '</td>'
-       + '<td><span style="color:' + color + '">' + arrow + ' ' + (d>=0?'+':'') + d.toFixed(2) + '%</span></td>'
-       + '</tr>';
-  });
-  h += '</table></div></div>';
-
-  // 月度投喂对比
-  const months = [...new Set([...Object.keys(oldD.month_total), ...Object.keys(newD.month_total)])].sort();
-  h += '<div class="box"><h3>📅 月度投喂量对比</h3>'
-     + '<div class="tbl-wrap"><table><tr><th>月份</th><th>旧值</th><th>新值</th><th>变化</th></tr>';
-  months.forEach(m => {
-    const o = oldD.month_total[m] || 0;
-    const n = newD.month_total[m] || 0;
-    h += '<tr><td>' + m + '</td>'
-       + '<td class="nr">' + fmtNum(o) + '</td>'
-       + '<td class="nr">' + fmtNum(n) + '</td>'
-       + '<td class="nr">' + diffArrow(o, n, false) + '</td></tr>';
-  });
-  h += '</table></div>'
-     + '<canvas id="cmp_month_chart" style="margin-top:12px;max-height:220px"></canvas>'
-     + '</div>';
-  h += '</div>';
-
-  // 业务转化对比（按月 × 链路）
-  const bizMonths = [...new Set([...Object.keys(oldD.month_channel_biz || {}), ...Object.keys(newD.month_channel_biz || {})])].sort();
-  const channels = ['400电话', '官网', '小程序'];
-  const bizFields = [
-    { key: '商机', label: '商机数' },
-    { key: '成交', label: '成交数' },
-    { key: '成交额', label: '成交额(元)' },
-  ];
-  h += '<div class="box" style="margin-bottom:16px"><h3>💰 业务转化对比（按月 × 链路）</h3>'
-     + '<div class="tbl-wrap"><table><tr><th>月份</th><th>链路</th><th>旧商机</th><th>新商机</th><th>旧成交</th><th>新成交</th><th>旧成交额</th><th>新成交额</th></tr>';
-  bizMonths.forEach(m => {
-    channels.forEach((ch, ci) => {
-      const o = (oldD.month_channel_biz && oldD.month_channel_biz[m] && oldD.month_channel_biz[m][ch]) || {商机:0,成交:0,成交额:0};
-      const n = (newD.month_channel_biz && newD.month_channel_biz[m] && newD.month_channel_biz[m][ch]) || {商机:0,成交:0,成交额:0};
-      h += '<tr>' + (ci === 0 ? '<td rowspan="3" style="vertical-align:middle;font-weight:700">' + m + '</td>' : '')
-         + '<td>' + ch + '</td>'
-         + '<td class="nr">' + fmtNum(o['商机']) + '</td>'
-         + '<td class="nr">' + diffArrow(o['商机'], n['商机'], false) + '</td>'
-         + '<td class="nr">' + fmtNum(o['成交']) + '</td>'
-         + '<td class="nr">' + diffArrow(o['成交'], n['成交'], false) + '</td>'
-         + '<td class="nr">' + fmtNum(o['成交额']) + '</td>'
-         + '<td class="nr">' + diffArrow(o['成交额'], n['成交额'], false) + '</td>'
-         + '</tr>';
-    });
-  });
-  h += '</table></div></div>';
-
-  box.innerHTML = h;
-
-  // 月度投喂对比图
-  dch('cmp_month_chart');
-  const ctx = document.getElementById('cmp_month_chart').getContext('2d');
-  chs['cmp_month_chart'] = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: months,
-      datasets: [
-        { label: oldDate + ' 投喂量', data: months.map(m => oldD.month_total[m] || 0), backgroundColor: 'rgba(66,165,245,0.6)', borderRadius: 4 },
-        { label: newDate + ' 投喂量', data: months.map(m => newD.month_total[m] || 0), backgroundColor: 'rgba(102,187,106,0.6)', borderRadius: 4 },
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { labels: { color: '#aaa' } } },
-      scales: {
-        x: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-        y: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } }
-      }
-    }
-  });
-}
-
-function initCompareSelects() {
-  const oldSel = document.getElementById('cmpOld');
-  const newSel = document.getElementById('cmpNew');
-  if (!oldSel || !newSel || !SNAPSHOTS || SNAPSHOTS.length < 2) return;
-  const dates = SNAPSHOTS.map(s => s.date);
-  dates.forEach((d, i) => {
-    const o1 = document.createElement('option'); o1.value = d; o1.textContent = d; oldSel.appendChild(o1);
-    const o2 = document.createElement('option'); o2.value = d; o2.textContent = d; newSel.appendChild(o2);
-  });
-  // 默认选最近两个
-  oldSel.value = dates[dates.length - 2];
-  newSel.value = dates[dates.length - 1];
-}
-
-// 在初始化时填充下拉框
-document.addEventListener('DOMContentLoaded', function() {
-  if (typeof SNAPSHOTS !== 'undefined') initCompareSelects();
-});
-
-</script>
-</body>
-</html>
+>
