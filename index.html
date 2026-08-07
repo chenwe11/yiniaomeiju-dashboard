@@ -640,15 +640,10 @@ function renderKW() {
     options: { responsive: true, plugins: { legend: { labels: { color: '#aaa', font: { size: 10 } } } }, scales: { x: { stacked: true, ticks: { color: '#aaa', font: { size: 9 } } }, y: { stacked: true, ticks: { color: '#666' } } } }
   });
 
-  // Top keywords from ranking data
-  let kwCount = {};
-  D.rank_detail.forEach(r => { if (r.keyword) kwCount[r.keyword] = (kwCount[r.keyword] || 0) + 1; });
-  let kwArr = Object.entries(kwCount).sort((a, b) => b[1] - a[1]).slice(0, 15);
+  // Top keywords from ranking data - requires keyword-level detail (not yet available in summary format)
   dch('kw_top');
-  chs.kw_top = new Chart(document.getElementById('kw_top'), {
-    type: 'bar', data: { labels: kwArr.map(x => x[0]), datasets: [{ data: kwArr.map(x => x[1]), backgroundColor: 'rgba(0,150,136,.6)', borderRadius: 3 }] },
-    options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#666' } }, y: { ticks: { color: '#aaa', font: { size: 9 } } } } }
-  });
+  let kwEl = document.getElementById('kw_top');
+  if (kwEl) { kwEl.parentElement.innerHTML = '<div style="text-align:center;color:#888;padding:40px;font-size:13px">关键词明细数据待录入，暂无法生成热门关键词排行</div>'; }
 
   let h = '<tr><th>城市</th><th>类型</th><th>已覆盖</th><th>标准库</th><th>覆盖率</th><th>缺口</th><th>状态</th></tr>';
   covC.forEach(c => {
