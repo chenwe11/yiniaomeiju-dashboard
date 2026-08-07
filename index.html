@@ -136,15 +136,6 @@ canvas{max-height:300px}
     <select id="rkFC" style="background:#1e1e1e;color:#ddd;border:1px solid #444;border-radius:4px;padding:4px 8px;font-size:12px">
       <option value="all">全部城市</option>
     </select>
-    <select id="rkCat" style="background:#1e1e1e;color:#ddd;border:1px solid #444;border-radius:4px;padding:4px 8px;font-size:12px">
-      <option value="all">全部类目</option>
-    </select>
-    <select id="rkInd" style="background:#1e1e1e;color:#ddd;border:1px solid #444;border-radius:4px;padding:4px 8px;font-size:12px">
-      <option value="all">全部行业词</option>
-    </select>
-    <select id="rkLT" style="background:#1e1e1e;color:#ddd;border:1px solid #444;border-radius:4px;padding:4px 8px;font-size:12px">
-      <option value="all">全部长尾词</option>
-    </select>
   </div>
   <div class="kpi-row" id="rk_kpi"></div>
   <div class="grid2">
@@ -310,14 +301,9 @@ function resetF() {
 // Init rank local filters
 (function() {
   const rkFC = document.getElementById('rkFC');
-  const rkCat = document.getElementById('rkCat');
-  const rkInd = document.getElementById('rkInd');
-  const rkLT = document.getElementById('rkLT');
-  // Populate from rank_detail (summary format: by_city)
   let cities = Object.keys(D.rank_detail.by_city || {}).sort();
   cities.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; rkFC.appendChild(o); });
-  // Only city filter needed when data is summary format
-  [rkFC].forEach(el => el.addEventListener('change', renderRank));
+  rkFC.addEventListener('change', renderRank);
 })();
 
 function getFD() {
