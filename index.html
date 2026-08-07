@@ -352,11 +352,11 @@ function getFD() {
       if (p === '豆包') { cd += v; cPlat[p][city] = v; } else { cs += v; cPlat[p][city] = v; }
     }
   }
-  let uv = 0, zx = 0, bm = {};
+  let uv = 0, zx = 0, mpu = 0, bm = {};
   for (let m in D.daily_month) {
     if (sM !== 'all' && m !== sM) continue;
     let d = D.daily_month[m];
-    uv += d['官网UV'] || 0; zx += d['咨询'] || 0;
+    uv += d['官网UV'] || 0; zx += d['咨询'] || 0; mpu += d['登录用户'] || 0;
     bm[m] = d;
   }
   // 商机/有效商机/成交/业绩 统一从city_biz计算
@@ -406,7 +406,7 @@ function getFD() {
       }
     }
   }
-  return { cc, cov, cCov, cd, cs, cPlat, uv, zx, sj, yx, cj, yj, bm, cbf, sM, sC, rankSummary, rTotal, rRanked, rTop1, rTop3, feedFiltered, allFeedMedia: [...allFeedMedia] };
+  return { cc, cov, cCov, cd, cs, cPlat, uv, zx, mpu, sj, yx, cj, yj, bm, cbf, sM, sC, rankSummary, rTotal, rRanked, rTop1, rTop3, feedFiltered, allFeedMedia: [...allFeedMedia] };
 }
 
 function cityBizSum(cbf) {
@@ -479,22 +479,11 @@ function renderOverview() {
   let totalStd = cCount * CITY_STD;
   let avgCovRate = totalStd > 0 ? (cov / totalStd * 100).toFixed(1) + '%' : '-';
 
-  // Aggregate traffic & conversion data
-  let phoneCalls = Object.values(D.daily_month).reduce((s,d) => s + (d['咨询']||0), 0);
-  let webUV = Object.values(D.daily_month).reduce((s,d) => s + (d['官网UV']||0), 0);
-  let miniUsers = 0;
-  // Aggregate sj/yx/cj across all biz_channel
-  let totalSj=0, totalYx=0, totalCj2=0;
-  for (let m in D.biz_channel) {
-    let bc = D.biz_channel[m];
-    ['400电话','官网','小程序'].forEach(ch => {
-      if (bc[ch]) {
-        totalSj += bc[ch]['商机']||0;
-        totalYx += bc[ch]['有效商机']||0;
-        totalCj2 += bc[ch]['成交']||0;
-      }
-    });
-  }
+  // Use filtered data from getFD()
+  let phoneCalls = fd.zx;
+  let webUV = fd.uv;
+  let miniUsers = fd.mpu;
+  let totalSj = fd.sj, totalYx = fd.yx, totalCj2 = fd.cj;
 
   document.getElementById('o_kpi').innerHTML = `
     <div class="kpi"><div class="v">${cc.toLocaleString()}</div><div class="l">内容投喂</div></div>
@@ -870,10 +859,10 @@ function renderBiz() {
     totalCj += agg[ch].cj; totalYj += agg[ch].yj;
   });
 
-  // Top-level traffic fields (currently unavailable, keep 0 / "-")
-  const phoneCalls = Object.values(D.daily_month).reduce((s,d) => s + (d['咨询']||0), 0); // 400进线量
-  const webUV = Object.values(D.daily_month).reduce((s,d) => s + (d['官网UV']||0), 0); // 官网UV
-  const miniUsers = 0;  // 小程序登录用户数
+  // Filtered traffic fields
+  const phoneCalls = fd.zx; // 400进线量
+  const webUV = fd.uv; // 官网UV
+  const miniUsers = fd.mpu;  // 小程序登录用户数
 
   // KPI cards
   let kpiHTML = '';
