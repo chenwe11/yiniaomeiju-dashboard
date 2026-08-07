@@ -1048,4 +1048,104 @@ function renderBiz() {
     document.getElementById('biz_month_tbl').innerHTML = h;
   }
 
->
+
+}
+
+// ===== TAB 6: 问题诊断 =====
+function renderIssues() {
+  let issues = [];
+  // Check cities with low coverage
+  for (let c in D.city_kw_coverage) {
+    let rate = D.city_kw_coverage[c].rate || 0;
+    if (rate < 30) issues.push({level: 'high', city: c, msg: '覆盖率仅' + rate + '%，需加大内容投喂'});
+    else if (rate < 50) issues.push({level: 'med', city: c, msg: '覆盖率' + rate + '%，仍有提升空间'});
+  }
+  // Check cities with low AI citation
+  for (let c in D.cite_city_platform['豆包']) {
+    let v = D.cite_city_platform['豆包'][c] || 0;
+    if (v < 5) issues.push({level: 'med', city: c, msg: '豆包收录仅' + v + '条'});
+  }
+
+  let html = '';
+  if (issues.length === 0) {
+    html = '<div style="text-align:center;color:#66bb6a;padding:20px">暂无重大问题</div>';
+  } else {
+    issues.sort((a, b) => (a.level === 'high' ? 0 : 1) - (b.level === 'high' ? 0 : 1));
+    issues.forEach(iss => {
+      let color = iss.level === 'high' ? '#ef5350' : '#ffa726';
+      html += '<div style="padding:10px 14px;margin-bottom:8px;background:#1a1f4e;border-radius:6px;border-left:3px solid ' + color + '">';
+      html += '<strong style="color:' + color + '">' + (iss.level === 'high' ? '🔴' : '🟡') + ' ' + iss.city + '</strong> ';
+      html += '<span style="color:#ccc">' + iss.msg + '</span></div>';
+    });
+  }
+  document.getElementById('issues_content').innerHTML = html;
+}
+
+// ===== TAB 7: 数据对比 =====
+function renderCompare() {
+  const oldDate = document.getElementById('cmpOld').value;
+  const newDate = document.getElementById('cmpNew').value;
+  if (!oldDate || !newDate) return;
+  let oldSnap = SNAPSHOTS.find(s => s.date === oldDate);
+  let newSnap = SNAPSHOTS.find(s => s.date === newDate);
+  if (!oldSnap || !newSnap) { document.getElementById('cmp_content').innerHTML = '<div style="color:#888">快照数据不可用</div>'; return; }
+  let oldD = oldSnap.data, newD = newSnap.data;
+
+  let html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">';
+  html += '<div class="kpi"><div class="v">' + oldDate + '</div><div class="l">较早快照</div></div>';
+  html += '<div class="kpi"><div class="v gr">' + newDate + '</div><div class="l">较新快照</div></div>';
+  html += '</div>';
+
+  // Monthly feed comparison
+  let months = D.all_months;
+  html += '<div class="box" style="margin-bottom:16px"><h3>📊 月度投喂量对比</h3><canvas id="cmp_month_chart"></canvas></div>';
+
+  let box = document.createElement('div');
+  box.innerHTML = html;
+  document.getElementById('cmp_content').innerHTML = box.innerHTML;
+
+  // Monthly feed comparison chart
+  dch('cmp_month_chart');
+  const ctx = document.getElementById('cmp_month_chart').getContext('2d');
+  chs['cmp_month_chart'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: months,
+      datasets: [
+        { label: oldDate + ' 投喂量', data: months.map(m => oldD.month_total[m] || 0), backgroundColor: 'rgba(66,165,245,0.6)', borderRadius: 4 },
+        { label: newDate + ' 投喂量', data: months.map(m => newD.month_total[m] || 0), backgroundColor: 'rgba(102,187,106,0.6)', borderRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: '#aaa' } } },
+      scales: {
+        x: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+        y: { ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+      }
+    }
+  });
+}
+
+function initCompareSelects() {
+  const oldSel = document.getElementById('cmpOld');
+  const newSel = document.getElementById('cmpNew');
+  if (!oldSel || !newSel || !SNAPSHOTS || SNAPSHOTS.length < 2) return;
+  const dates = SNAPSHOTS.map(s => s.date);
+  dates.forEach((d, i) => {
+    const o1 = document.createElement('option'); o1.value = d; o1.textContent = d; oldSel.appendChild(o1);
+    const o2 = document.createElement('option'); o2.value = d; o2.textContent = d; newSel.appendChild(o2);
+  });
+  // 默认选最近两个
+  oldSel.value = dates[dates.length - 2];
+  newSel.value = dates[dates.length - 1];
+}
+
+// 在初始化时填充下拉框
+document.addEventListener('DOMContentLoaded', function() {
+  if (typeof SNAPSHOTS !== 'undefined') initCompareSelects();
+});
+
+</script>
+</body>
+</html>
