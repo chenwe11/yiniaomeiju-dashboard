@@ -320,13 +320,9 @@ function getFD() {
   let cov = 0, cCov = {};
   for (let city in D.city_kw_coverage) {
     if (sC !== 'all' && city !== sC) continue;
-    let c = D.city_kw_coverage[city], f = 1;
-    if (sM !== 'all') {
-      let t = Object.values(D.city_month[city] || {}).reduce((a, b) => a + b, 0);
-      let v = (D.city_month[city] || {})[sM] || 0;
-      f = t > 0 ? Math.min(1, v / t * 3) : 0;
-    }
-    let adj = Math.round(c.covered * f);
+    let c = D.city_kw_coverage[city];
+    // 覆盖率是累积排名成果，不按当月投喂量打折
+    let adj = c.covered;
     cov += adj;
     cCov[city] = { covered: adj, total: c.total, rate: c.total > 0 ? +(adj / c.total * 100).toFixed(1) : 0 };
   }
